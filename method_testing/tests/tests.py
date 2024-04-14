@@ -7,19 +7,27 @@ import pprint
 from typing import Generator
 class TestSolution(unittest.TestCase): 
     @staticmethod
-    def method_gettr(func_filter) -> Generator[callable, None, None]: 
+    def method_gettr(problem, f_filter) -> Generator[callable, None, None]: 
+        """
+        Get all methods from the problem class that pass the filter function.
+        """
         for _, method in inspect.getmembers(
-            main.Testing, predicate=func_filter
+            problem, 
+            predicate=lambda func: inspect.isfunction(func) and f_filter(func)
         ): yield method
 
-    def data_func(self, inout, problem, func_filter): 
+    def data_func(self, inout, problem, f_filter): 
+        """
+        Test the methods from the problem class with the given input/output pairs.
+        """
         for data, expected in inout:
-            for method in TestSolution.method_gettr(func_filter): 
-                print(inspect.signature(method))
-                self.assertEqual(method(problem.Testing(), data), expected)
+            for method in TestSolution.method_gettr(problem, f_filter): 
+                self.assertEqual(method(problem(), data), expected)
     
     def test_give_first_sig_filt(self):
-        # create a signature of list[int]
+        """
+        Test the functions of the class Testing in main.py if they have the specified signature
+        """
         t_signature = inspect.Signature(
             parameters=[
                 inspect.Parameter(
@@ -31,20 +39,21 @@ class TestSolution(unittest.TestCase):
             ], return_annotation=int
         )
         
-        print(type(t_signature))
-        
         self.data_func([
             ([1, 2, 3], 1),
             ([4, 5, 6], 4),
             ([7, 8, 9], 7)
-        ], main, lambda x: inspect.isfunction(x) and inspect.signature(x) == t_signature)
+        ], main.Testing, lambda func: inspect.signature(func) == t_signature)
         
     def test_give_first_name_filt(self):
+        """
+        Test the functions of the class Testing in main.py if they have the specified name
+        """
         self.data_func([
             ([1, 2, 3], 1),
             ([4, 5, 6], 4),
             ([7, 8, 9], 7)
-        ], main, lambda x: inspect.isfunction(x) and x.__name__.startswith("give_first"))
+        ], main.Testing, lambda func: func.__name__.startswith("give_first"))
         
     def test_give_first_best(self):
         inout = [
@@ -53,7 +62,7 @@ class TestSolution(unittest.TestCase):
             ([7, 8, 9], 7)
         ]
         for i in inout: 
-            for method in TestSolution.method_gettr(lambda x: inspect.isfunction(x) and x.__name__.startswith("give_first")): 
+            for method in TestSolution.method_gettr(main.Testing, lambda func: func.__name__.startswith("give_first")): 
                 self.assertEqual(method(main.Testing(), i[0]), i[1])
         
     def test_give_first_bad(self): 
@@ -65,11 +74,10 @@ class TestSolution(unittest.TestCase):
         self.assertEqual(main.Testing().give_first_alt([7, 8, 9]), 7)
         
     def test_give_first_better(self): 
-        for method in TestSolution.method_gettr(lambda x: inspect.isfunction(x) and x.__name__.startswith("give_first")): 
+        for method in TestSolution.method_gettr(main.Testing, lambda func: func.__name__.startswith("give_first")): 
             self.assertEqual(method(main.Testing(), [1, 2, 3]), 1)
             self.assertEqual(method(main.Testing(), [4, 5, 6]), 4)
             self.assertEqual(method(main.Testing(), [7, 8, 9]), 7)
-
 
     def test_give_first_too_far(self):
         inout = [
@@ -77,7 +85,7 @@ class TestSolution(unittest.TestCase):
             ([4, 5, 6], 4),
             ([7, 8, 9], 7)
         ]
-        methods = [method for method in TestSolution.method_gettr(lambda x: inspect.isfunction(x) and x.__name__.startswith("give_first"))]
+        methods = [method for method in TestSolution.method_gettr(main.Testing, lambda func: func.__name__.startswith("give_first"))]
         for data, expected in inout: 
             results = map(lambda method: method(main.Testing(), data), methods)
             self.assertEqual(list(results), [expected] * len(methods))
